@@ -287,11 +287,13 @@ window.Mercury = {
     // is expected to respond with a form.  Once the user submits this form, an Ajax request is sent to the server with
     // the options provided; this preview request is expected to respond with the rendered markup for the snippet.
     //
+    // plainText option changes the normal snippet behavior to just simple plain text
     // Name will be replaced with the snippet name (eg. example)
     snippets: {
       method: 'POST',
       optionsUrl: '/mercury/snippets/:name/options.html',
-      previewUrl: '/mercury/snippets/:name/preview.html'
+      previewUrl: '/mercury/snippets/:name/preview.html',
+      plainText: true
       },
 
 
