@@ -1,5 +1,3 @@
-require '/assets/mercury.js'
-
 describe "Mercury.modalHandlers.insertCharacter", ->
 
   template 'mercury/modals/insertcharacter.html'
@@ -7,7 +5,8 @@ describe "Mercury.modalHandlers.insertCharacter", ->
   beforeEach ->
     @modal =
       element: $('#test')
-    @modalHideSpy = spyOn(Mercury.modal, 'hide').andCallFake(=>)
+      hide: ->
+    @modalHideSpy = spyOn(@modal, 'hide').andCallFake(=>)
     Mercury.modalHandlers.insertCharacter.call(@modal)
 
   describe "clicking on a character", ->

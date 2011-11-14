@@ -1,5 +1,3 @@
-require '/assets/mercury.js'
-
 describe "Mercury.modal", ->
 
   template 'mercury/modal.html'
@@ -7,8 +5,12 @@ describe "Mercury.modal", ->
   beforeEach ->
     $.fx.off = true
     Mercury.displayRect = {fullHeight: 200}
+    Mercury.determinedLocale =
+      top: {'hello world!': 'bork! bork!'}
+      sub: {'foo': 'Bork!'}
 
   afterEach ->
+    Mercury.config.localization.enabled = false
     Mercury.modal.initialized = false
     Mercury.modal.visible = false
     $(window).unbind('mercury:refresh')
@@ -119,11 +121,6 @@ describe "Mercury.modal", ->
       expect($('#modal_container .mercury-modal').length).toEqual(1)
       expect($('#modal_container .mercury-modal-overlay').length).toEqual(1)
 
-    it "updates the title to reflect what was passed in the options", ->
-      Mercury.modal.options.title = 'title'
-      Mercury.modal.build()
-      expect($('#test .mercury-modal-title span').html()).toEqual('title')
-
 
   describe "observed events", ->
 
@@ -146,12 +143,20 @@ describe "Mercury.modal", ->
         Mercury.trigger('resize')
         expect(spy.callCount).toEqual(1)
 
-    describe "clicking on the overlay", ->
+    describe "clicking on the overlay (options.allowHideUsingOverlay = true)", ->
 
       it "calls hide", ->
+        Mercury.modal.options.allowHideUsingOverlay = true
         spy = spyOn(Mercury.modal, 'hide').andCallFake(=>)
         jasmine.simulate.click($('.mercury-modal-overlay').get(0))
         expect(spy.callCount).toEqual(1)
+
+    describe "clicking on the overlay (options.allowHideUsingOverlay = false)", ->
+
+      it "doesn't call hide", ->
+        spy = spyOn(Mercury.modal, 'hide').andCallFake(=>)
+        jasmine.simulate.click($('.mercury-modal-overlay').get(0))
+        expect(spy.callCount).toEqual(0)
 
     describe "clicking on the close button", ->
 
@@ -308,7 +313,7 @@ describe "Mercury.modal", ->
     describe "on a preloaded view", ->
 
       beforeEach ->
-        @setTimeoutSpy = spyOn(window, 'setTimeout').andCallFake((callback) => callback())
+        @setTimeoutSpy = spyOn(window, 'setTimeout').andCallFake((timeout, callback) => callback())
         Mercury.preloadedViews = {'/evergreen/responses/blank.html': 'this is the preloaded content'}
 
       afterEach ->
@@ -391,8 +396,8 @@ describe "Mercury.modal", ->
       expect($('.mercury-modal').hasClass('loading')).toEqual(false)
 
     it "sets the content elements html to whatever was passed", ->
-      Mercury.modal.loadContent('content')
-      expect($('.mercury-modal-content').html()).toEqual('content')
+      Mercury.modal.loadContent('<span>content</span>')
+      expect($('.mercury-modal-content').html()).toEqual('<span>content</span>')
 
     it "hides the contentElement", ->
       $('.mercury-modal-content').css('display', 'block')
@@ -401,9 +406,9 @@ describe "Mercury.modal", ->
       expect($('.mercury-modal-content').css('visibility')).toEqual('hidden')
 
     it "finds the content panes and control elements in case they were added with the content", ->
-      Mercury.modal.loadContent('<div class="mercury-modal-pane-container"></div><div class="mercury-modal-controls"></div>')
-      expect(Mercury.modal.contentPane.get(0)).toEqual($('#test .mercury-modal-pane-container').get(0))
-      expect(Mercury.modal.contentControl.get(0)).toEqual($('#test .mercury-modal-controls').get(0))
+      Mercury.modal.loadContent('<div class="mercury-display-pane-container"></div><div class="mercury-display-controls"></div>')
+      expect(Mercury.modal.contentPane.get(0)).toEqual($('#test .mercury-display-pane-container').get(0))
+      expect(Mercury.modal.contentControl.get(0)).toEqual($('#test .mercury-display-controls').get(0))
 
     it "calls an afterLoad callback (if provided in options)", ->
       callCount = 0
@@ -415,6 +420,11 @@ describe "Mercury.modal", ->
       Mercury.modalHandlers['foo'] = => callCount += 1
       Mercury.modal.loadContent('content', {handler: 'foo'})
       expect(callCount).toEqual(1)
+
+    it "translates the content if configured", ->
+      Mercury.config.localization.enabled = true
+      Mercury.modal.loadContent('<span>foo</span>')
+      expect($('.mercury-modal-content').html()).toEqual('<span>Bork!</span>')
 
     it "calls resize", ->
       Mercury.modal.loadContent('content')

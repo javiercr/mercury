@@ -6,22 +6,31 @@ class @Mercury.Panel extends Mercury.Dialog
 
   build: ->
     @element = jQuery('<div>', {class: 'mercury-panel loading', style: 'display:none;'})
-    @titleElement = jQuery("<h1>#{@options.title}</h1>").appendTo(@element)
+    @titleElement = jQuery("<h1>#{Mercury.I18n(@options.title)}</h1>").appendTo(@element)
     @paneElement = jQuery('<div>', {class: 'mercury-panel-pane'}).appendTo(@element)
+
+    if @options.closeButton
+      jQuery('<a/>', {class: 'mercury-panel-close'}).appendTo(@titleElement).css({opacity: 0})
 
     @element.appendTo(jQuery(@options.appendTo).get(0) ? 'body')
 
 
   bindEvents: ->
-    Mercury.bind 'resize', => @position(@visible)
-    Mercury.bind 'hide:panels', (event, panel) =>
-      unless panel == @
-        @button.removeClass('pressed')
-        @hide()
+    Mercury.on 'resize', => @position(@visible)
 
-    @element.mousedown (event) -> event.stopPropagation()
+    Mercury.on 'hide:panels', (event, panel) =>
+      return if panel == @
+      @button.removeClass('pressed')
+      @hide()
 
-    @element.bind 'ajax:beforeSend', (event, xhr, options) =>
+    @titleElement.find('.mercury-panel-close').on 'click', (event) ->
+      event.preventDefault()
+      Mercury.trigger('hide:panels')
+
+    @element.on 'mousedown', (event) ->
+      event.stopPropagation()
+
+    @element.on 'ajax:beforeSend', (event, xhr, options) =>
       options.success = (content) =>
         @loadContent(content)
         @resize()
@@ -35,6 +44,7 @@ class @Mercury.Panel extends Mercury.Dialog
 
 
   resize: ->
+    @titleElement.find('.mercury-panel-close').css({opacity: 0})
     @paneElement.css({display: 'none'})
     preWidth = @element.width()
 
@@ -44,6 +54,8 @@ class @Mercury.Panel extends Mercury.Dialog
     @paneElement.css({visibility: 'visible', display: 'none'})
     position = @element.offset()
     @element.animate {left: position.left - (postWidth - preWidth), width: postWidth}, 200, 'easeInOutSine', =>
+      @titleElement.find('.mercury-panel-close').animate({opacity: 1}, 100)
+
       @paneElement.css({display: 'block', width: postWidth})
       @makeDraggable()
 
@@ -82,6 +94,7 @@ class @Mercury.Panel extends Mercury.Dialog
     @element.removeClass('loading')
     @paneElement.css({visibility: 'hidden'})
     @paneElement.html(data)
+    @paneElement.localize(Mercury.locale()) if Mercury.config.localization.enabled
 
 
   makeDraggable: ->

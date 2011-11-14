@@ -2,7 +2,7 @@
   Mercury.uploader.show(file, options) if Mercury.config.uploading.enabled
   return Mercury.uploader
 
-jQuery.extend Mercury.uploader, {
+jQuery.extend Mercury.uploader,
 
   show: (file, @options = {}) ->
     @file = new Mercury.uploader.File(file)
@@ -40,7 +40,9 @@ jQuery.extend Mercury.uploader, {
     @element = jQuery('<div>', {class: 'mercury-uploader', style: 'display:none'})
     @element.append('<div class="mercury-uploader-preview"><b><img/></b></div>')
     @element.append('<div class="mercury-uploader-details"></div>')
-    @element.append('<div class="mercury-uploader-progress"><span>Processing...</span><div class="mercury-uploader-indicator"><div><b>0%</b></div></div></div>')
+    @element.append('<div class="mercury-uploader-progress"><span></span><div class="mercury-uploader-indicator"><div><b>0%</b></div></div></div>')
+
+    @updateStatus('Processing...')
 
     @overlay = jQuery('<div>', {class: 'mercury-uploader-overlay', style: 'display:none'})
 
@@ -49,7 +51,7 @@ jQuery.extend Mercury.uploader, {
 
 
   bindEvents: ->
-    Mercury.bind 'resize', => @position()
+    Mercury.on 'resize', => @position()
 
 
   appear: ->
@@ -75,7 +77,11 @@ jQuery.extend Mercury.uploader, {
 
 
   fillDisplay: ->
-    details = ["Name: #{@file.name}", "Size: #{@file.readableSize}", "Type: #{@file.type}"]
+    details = [
+      Mercury.I18n('Name: %s', @file.name),
+      Mercury.I18n('Size: %s', @file.readableSize),
+      Mercury.I18n('Type: %s', @file.type)
+    ]
     @element.find('.mercury-uploader-details').html(details.join('<br/>'))
 
 
@@ -92,7 +98,7 @@ jQuery.extend Mercury.uploader, {
     xhr.onload = (event) =>
       if (event.currentTarget.status >= 400)
         @updateStatus('Error: Unable to upload the file')
-        alert("#{event.currentTarget.status}: Unable to process response")
+        Mercury.notify('Unable to process response: %s', event.currentTarget.status)
         @hide()
       else
         try
@@ -105,7 +111,7 @@ jQuery.extend Mercury.uploader, {
           @hide()
         catch error
           @updateStatus('Error: Unable to upload the file')
-          alert("Unable to process response: #{error}")
+          Mercury.notify('Unable to process response: %s', error)
           @hide()
 
     xhr.open('post', Mercury.config.uploading.url, true)
@@ -126,7 +132,7 @@ jQuery.extend Mercury.uploader, {
 
 
   updateStatus: (message, loaded) ->
-    @element.find('.mercury-uploader-progress span').html(message)
+    @element.find('.mercury-uploader-progress span').html(Mercury.I18n(message).toString())
     if loaded
       percent = Math.floor(loaded * 100 / @file.size) + '%'
       @element.find('.mercury-uploader-indicator div').css({width: percent})
@@ -166,7 +172,6 @@ jQuery.extend Mercury.uploader, {
     onerror: ->
       @updateStatus('Error: Unable to upload the file')
       @hide(3)
-}
 
 
 
@@ -181,8 +186,8 @@ class Mercury.uploader.File
 
     # add any errors if we need to
     errors = []
-    errors.push('Too large') if @size >= Mercury.config.uploading.maxFileSize
-    errors.push('Unsupported format') unless Mercury.config.uploading.allowedMimeTypes.indexOf(@type) > -1
+    errors.push(Mercury.I18n('Too large')) if @size >= Mercury.config.uploading.maxFileSize
+    errors.push(Mercury.I18n('Unsupported format')) unless Mercury.config.uploading.allowedMimeTypes.indexOf(@type) > -1
     @errors = errors.join(' / ') if errors.length
 
 

@@ -1,5 +1,3 @@
-require '/assets/mercury.js'
-
 describe "Mercury.lightview", ->
 
   template 'mercury/lightview.html'
@@ -7,8 +5,12 @@ describe "Mercury.lightview", ->
   beforeEach ->
     $.fx.off = true
     Mercury.displayRect = {fullHeight: 200, width: 1000}
+    Mercury.determinedLocale =
+      top: {'hello world!': 'bork! bork!'}
+      sub: {'foo': 'Bork!'}
 
   afterEach ->
+    Mercury.config.localization.enabled = false
     Mercury.lightview.initialized = false
     Mercury.lightview.visible = false
     $(window).unbind('mercury:refresh')
@@ -113,11 +115,6 @@ describe "Mercury.lightview", ->
       Mercury.lightview.build()
       expect($('#lightview_container .mercury-lightview').length).toEqual(1)
       expect($('#lightview_container .mercury-lightview-overlay').length).toEqual(1)
-
-    it "updates the title to reflect what was passed in the options", ->
-      Mercury.lightview.options.title = 'title'
-      Mercury.lightview.build()
-      expect($('#test .mercury-lightview-title span').html()).toEqual('title')
 
     it "creates a close button if asked to in the options", ->
       Mercury.lightview.options.closeButton = true
@@ -254,6 +251,12 @@ describe "Mercury.lightview", ->
     beforeEach ->
       spyOn(Mercury.lightview, 'appear').andCallFake(=>)
       Mercury.lightview('/evergreen/responses/blank.html', {appendTo: $('#test')})
+      Mercury.lightview.contentPane = $()
+
+    it "will keep the content element visible if asked to do so", ->
+      $('.mercury-lightview-content').css('visibility', 'visible')
+      Mercury.lightview.resize(true)
+      expect($('.mercury-lightview-content').css('visibility')).toEqual('visible')
 
     it "resizes the element and adjusts it's position when empty", ->
       $('.mercury-lightview').css({display: 'block', visibility: 'visible', top: 0})
@@ -266,8 +269,8 @@ describe "Mercury.lightview", ->
       Mercury.lightview.loadContent('<div style="width:600px;height:400px"></div>')
       $('.mercury-lightview').css({display: 'block', visibility: 'visible', top: 0})
       Mercury.lightview.resize()
-      expect($('.mercury-lightview').width()).toEqual(642)
-      expect($('.mercury-lightview').offset()).toEqual({top: 20, left: 179})
+      expect($('.mercury-lightview').width()).toEqual(300)
+      expect($('.mercury-lightview').offset()).toEqual({top: 20, left: 350})
       expect($('.mercury-lightview').height()).toEqual(180)
 
 
@@ -323,7 +326,7 @@ describe "Mercury.lightview", ->
     describe "on a preloaded view", ->
 
       beforeEach ->
-        @setTimeoutSpy = spyOn(window, 'setTimeout').andCallFake((callback) => callback())
+        @setTimeoutSpy = spyOn(window, 'setTimeout').andCallFake((timeout, callback) => callback())
         Mercury.preloadedViews = {'/evergreen/responses/blank.html': 'this is the preloaded content'}
 
       afterEach ->
@@ -406,8 +409,8 @@ describe "Mercury.lightview", ->
       expect($('.mercury-lightview').hasClass('loading')).toEqual(false)
 
     it "sets the content elements html to whatever was passed", ->
-      Mercury.lightview.loadContent('content')
-      expect($('.mercury-lightview-content').html()).toEqual('content')
+      Mercury.lightview.loadContent('<span>content</span>')
+      expect($('.mercury-lightview-content').html()).toEqual('<span>content</span>')
 
     it "hides the contentElement", ->
       $('.mercury-lightview-content').css('display', 'block')
@@ -425,6 +428,11 @@ describe "Mercury.lightview", ->
       Mercury.lightviewHandlers['foo'] = => callCount += 1
       Mercury.lightview.loadContent('content', {handler: 'foo'})
       expect(callCount).toEqual(1)
+
+    it "translates the content if configured", ->
+      Mercury.config.localization.enabled = true
+      Mercury.lightview.loadContent('<span>foo</span>')
+      expect($('.mercury-lightview-content').html()).toEqual('<span>Bork!</span>')
 
     it "calls resize", ->
       Mercury.lightview.loadContent('content')

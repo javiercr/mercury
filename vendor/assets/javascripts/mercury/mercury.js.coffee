@@ -33,10 +33,11 @@
 #= require ./finalize
 #
 @Mercury ||= {}
-jQuery.extend @Mercury, {
+jQuery.extend @Mercury,
   version: '0.2.3'
 
   # No IE support yet because it doesn't follow the W3C standards for HTML5 contentEditable (aka designMode).
+  # todo: move these into the specific region types -- some would be supported, just not the primary ones?
   supported: document.getElementById && document.designMode && !jQuery.browser.konqueror && !jQuery.browser.msie
 
   # Mercury object namespaces
@@ -53,9 +54,9 @@ jQuery.extend @Mercury, {
     return headers
 
 
-  # Custom event and logging methods
-  bind: (eventName, callback) ->
-    jQuery(top).bind("mercury:#{eventName}", callback)
+  # Custom event methods
+  on: (eventName, callback) ->
+    jQuery(top).on("mercury:#{eventName}", callback)
 
 
   trigger: (eventName, options) ->
@@ -63,9 +64,55 @@ jQuery.extend @Mercury, {
     jQuery(top).trigger("mercury:#{eventName}", options)
 
 
+  bind: (eventName, callback) -> # todo: deprecated -- use 'on' instead
+    Mercury.deprecated('Mercury.bind is deprecated, use Mercury.on instead')
+    Mercury.on(eventName, callback)
+
+
+  # Alerting and logging methods
+  notify: (args...) ->
+    window.alert(Mercury.I18n.apply(@, args))
+
+
+  warn: (message, severity = 0) ->
+    if console
+      try console.warn(message)
+      catch e1
+        if severity >= 1
+          try console.debug(message) catch e2
+    else if severity >= 1
+      Mercury.notify(message)
+
+
+  deprecated: (message)->
+    message = "#{message} -- #{console.trace()}" if console && console.trace
+    #throw "deprecated: #{message}"
+    Mercury.warn("deprecated: #{message}", 1)
+
+
   log: ->
     if Mercury.debug && console
       return if arguments[0] == 'hide:toolbar' || arguments[0] == 'show:toolbar'
-      try console.debug(arguments) catch e
+      try console.debug(arguments)
+      catch e
 
-}
+
+  # I18n / Translation methods
+  locale: ->
+    return Mercury.determinedLocale if Mercury.determinedLocale
+    if Mercury.config.localization.enabled
+      locale = []
+      if navigator.language && (locale = navigator.language.toString().split('-')).length
+        topLocale = Mercury.I18n[locale[0]] || {}
+        subLocale = if locale.length > 1 then topLocale["_#{locale[1].toUpperCase()}_"]
+      if !Mercury.I18n[locale[0]]
+        locale = Mercury.config.localization.preferredLocale.split('-')
+        topLocale = Mercury.I18n[locale[0]] || {}
+        subLocale = if locale.length > 1 then topLocale["_#{locale[1].toUpperCase()}_"]
+    return Mercury.determinedLocale = {top: topLocale || {}, sub: subLocale || {}}
+
+
+  I18n: (sourceString, args...) ->
+    locale = Mercury.locale()
+    translation = (locale.sub[sourceString] || locale.top[sourceString] || sourceString || '').toString()
+    return if args.length then translation.printf.apply(translation, args) else translation

@@ -6,8 +6,8 @@ class @Mercury.PageEditor
   # saveMethod: 'POST', or 'PUT', create or update actions on save (defaults to POST)
   # visible: boolean, if the interface should start visible or not (defaults to true)
   constructor: (@saveUrl = null, @options = {}) ->
-    throw "Mercury.PageEditor is unsupported in this client. Supported browsers are chrome 10+, firefix 4+, and safari 5+." unless Mercury.supported
-    throw "Mercury.PageEditor can only be instantiated once." if window.mercuryInstance
+    throw Mercury.I18n('Mercury.PageEditor is unsupported in this client. Supported browsers are chrome 10+, firefix 4+, and safari 5+.') unless Mercury.supported
+    throw Mercury.I18n('Mercury.PageEditor can only be instantiated once.') if window.mercuryInstance
 
     @options.visible = true unless @options.visible == false
     @visible = @options.visible
@@ -24,19 +24,19 @@ class @Mercury.PageEditor
     @iframe = jQuery('<iframe>', {id: 'mercury_iframe', class: 'mercury-iframe', seamless: 'true', frameborder: '0', src: 'about:blank'})
     @iframe.appendTo(jQuery(@options.appendTo).get(0) ? 'body')
 
-    @iframe.load => @initializeFrame()
-    @iframe.get(0).contentWindow.document.location.href = @iframeSrc()
-
     @toolbar = new Mercury.Toolbar(@options)
     @statusbar = new Mercury.Statusbar(@options)
     @resize()
+
+    @iframe.on 'load', => @initializeFrame()
+    @iframe.get(0).contentWindow.document.location.href = @iframeSrc()
 
 
   initializeFrame: ->
     try
       return if @iframe.data('loaded')
       @iframe.data('loaded', true)
-      alert("Opera isn't a fully supported browser, your results may not be optimal.") if jQuery.browser.opera
+      Mercury.notify("Opera isn't a fully supported browser, your results may not be optimal.") if jQuery.browser.opera
       @document = jQuery(@iframe.get(0).contentWindow.document)
       stylesToInject = Mercury.config.injectedStyles.replace(/{{regionClass}}/g, Mercury.config.regionClass)
       jQuery("<style mercury-styles=\"true\">").html(stylesToInject).appendTo(@document.find('head'))
@@ -60,7 +60,7 @@ class @Mercury.PageEditor
 
       @iframe.css({visibility: 'visible'})
     catch error
-      alert("Mercury.PageEditor failed to load: #{error}\n\nPlease try refreshing.")
+      Mercury.notify('Mercury.PageEditor failed to load: %s\n\nPlease try refreshing.', error)
 
 
   initializeRegions: ->
@@ -83,8 +83,8 @@ class @Mercury.PageEditor
         region.togglePreview() if @previewing
       @regions.push(region)
     catch error
-      alert(error) if Mercury.debug
-      alert("Region type is malformed, no data-type provided, or \"#{type}\" is unknown for \"#{region.id || 'unknown'}\".")
+      Mercury.notify(error) if Mercury.debug
+      Mercury.notify('Region type is malformed, no data-type provided, or "%s" is unknown for the "%s" region.', type, region.attr('id') || 'unknown')
 
 
   finalizeInterface: ->
@@ -98,24 +98,22 @@ class @Mercury.PageEditor
 
 
   bindEvents: ->
-    Mercury.bind 'initialize:frame', => setTimeout(@initializeFrame, 1000)
-    Mercury.bind 'focus:frame', => @iframe.focus()
-    Mercury.bind 'focus:window', => setTimeout((=> @focusableElement.focus()), 10)
-    Mercury.bind 'toggle:interface', => @toggleInterface()
-    Mercury.bind 'reinitialize', => @initializeRegions()
+    Mercury.on 'initialize:frame', => setTimeout(100, @initializeFrame)
+    Mercury.on 'focus:frame', => @iframe.focus()
+    Mercury.on 'focus:window', => setTimeout(10, => @focusableElement.focus())
+    Mercury.on 'toggle:interface', => @toggleInterface()
+    Mercury.on 'reinitialize', => @initializeRegions()
+    Mercury.on 'mode', (event, options) => @previewing = !@previewing if options.mode == 'preview'
+    Mercury.on 'action', (event, options) => @save() if options.action == 'save'
 
-    Mercury.bind 'mode', (event, options) =>
-      @previewing = !@previewing if options.mode == 'preview'
-
-    Mercury.bind 'action', (event, options) =>
-       @save() if options.action == 'save'
-
-    @document.mousedown (event) ->
+    @document.on 'mousedown', (event) ->
       Mercury.trigger('hide:dialogs')
       if Mercury.region
         Mercury.trigger('unfocus:regions') unless jQuery(event.target).closest(".#{Mercury.config.regionClass}").get(0) == Mercury.region.element.get(0)
 
-    jQuery(window).resize => @resize()
+    jQuery(window).on 'resize', =>
+      @resize()
+
     window.onbeforeunload = @beforeUnload
 
 
@@ -166,7 +164,7 @@ class @Mercury.PageEditor
 
   beforeUnload: ->
     if Mercury.changes && !Mercury.silent
-      return "You have unsaved changes.  Are you sure you want to leave without saving them first?"
+      return Mercury.I18n('You have unsaved changes.  Are you sure you want to leave without saving them first?')
     return null
 
 
@@ -192,7 +190,7 @@ class @Mercury.PageEditor
         Mercury.changes = false
         Mercury.trigger('saved')
       error: =>
-        alert("Mercury was unable to save to the url: #{url}")
+        Mercury.notify('Mercury was unable to save to the url: %s', url)
     }
 
 

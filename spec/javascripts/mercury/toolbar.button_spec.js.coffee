@@ -1,5 +1,3 @@
-require '/assets/mercury.js'
-
 describe "Mercury.Toolbar.Button", ->
 
   template 'mercury/toolbar.button.html'
@@ -69,7 +67,7 @@ describe "Mercury.Toolbar.Button", ->
       spy = spyOn(Mercury, 'trigger').andCallFake(=>)
 
       jasmine.simulate.click(@button.get(0))
-      expect(spy.callCount).toEqual(2)
+      expect(spy.callCount).toEqual(1)
       expect(spy.argsForCall[0]).toEqual(['mode', {mode: 'foo'}])
 
     it "builds buttons that understand context", ->
@@ -101,10 +99,14 @@ describe "Mercury.Toolbar.Button", ->
       @button = new Mercury.Toolbar.Button('foo', 'title', 'summary', {modal: '/evergreen/responses/blank.html'}, {appendDialogsTo: $('#test')})
       # nothing unique about this in building -- the modal is built/fired on click
 
+    it "builds lightview buttons", ->
+      @button = new Mercury.Toolbar.Button('foo', 'title', 'summary', {lightview: '/evergreen/responses/blank.html'}, {appendDialogsTo: $('#test')})
+      # nothing unique about this in building -- the lightview is built/fired on click
+
     it "throws an error when an unknown type is encountered", ->
       expect(=>
         @button = new Mercury.Toolbar.Button('foo', 'title', 'summary', {foo: '/evergreen/responses/blank.html'})
-      ).toThrow('Unknown button type foo used for the foo button.')
+      ).toThrow('Unknown button type "foo" used for the "foo" button.')
 
 
   describe "observed events", ->
@@ -201,7 +203,7 @@ describe "Mercury.Toolbar.Button", ->
 
       it "triggers a focus:frame event", ->
         spy = spyOn(Mercury, 'trigger').andCallFake(=>)
-        @button = new Mercury.Toolbar.Button('foo', 'title', 'summary')
+        @button = new Mercury.Toolbar.Button('foo', 'title', 'summary', {}, {regions: ['editable']})
 
         jasmine.simulate.click(@button.get(0))
         expect(spy.argsForCall[1]).toEqual(['focus:frame'])
@@ -228,6 +230,13 @@ describe "Mercury.Toolbar.Button", ->
 
         jasmine.simulate.click(@button.get(0))
         expect(spy.argsForCall[0]).toEqual(['/evergreen/responses/blank.html', {title: 'summary', handler: 'foo'}])
+
+      it "opens a lightview window", ->
+        spy = spyOn(Mercury, 'lightview').andCallFake(=>)
+        @button = new Mercury.Toolbar.Button('foo', 'title', 'summary', {lightview: '/evergreen/responses/blank.html'})
+
+        jasmine.simulate.click(@button.get(0))
+        expect(spy.argsForCall[0]).toEqual(['/evergreen/responses/blank.html', {title: 'summary', handler: 'foo', closeButton: true}])
 
       it "shows and hides palettes", ->
         spy = spyOn(Mercury.Palette.prototype, 'toggle').andCallFake(=>)
