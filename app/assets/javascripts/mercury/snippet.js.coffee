@@ -64,21 +64,25 @@ class @Mercury.Snippet
   constructor: (@name, @identity, options = {}) ->
     @version = 0
     @data = ''
-    @wrapperTag = 'div'
+    @wrapperTag = 'span'
     @wrapperClass = ''
     @history = new Mercury.HistoryBuffer()
     @setOptions(options)
 
 
   getHTML: (context, callback = null) ->
-    elementClass = "#{@name}-snippet"
-    elementClass += " #{@wrapperClass}" if @wrapperClass
-    element = jQuery("<#{@wrapperTag}>", {
-      class: elementClass
-      contenteditable: "false"
-      'data-snippet': @identity
-      'data-version': @version
-    }, context)
+    if Mercury.config.snippets.plainText
+      element = jQuery('<span>', context)
+    else
+      elementClass = "#{@name}-snippet"
+      elementClass += " #{@wrapperClass}" if @wrapperClass
+      element = jQuery("<#{@wrapperTag}>", {
+        class: elementClass
+        contenteditable: "false"
+        'data-snippet': @identity
+        'data-version': @version
+      }, context)
+    
     element.html("[#{@identity}]")
     @loadPreview(element, callback)
     return element
